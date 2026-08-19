@@ -1,0 +1,13 @@
+defaults:
+  - data: default
+  - model: fusion
+  - _self_
+
+seed: 42
+deterministic: true
+device: auto
+
+visual_checkpoint: outputs/visual_branch/checkpoints/best.pt
+acoustic_checkpoint: outputs/acoustic_branch/checkpoints/best.pt
+visual_weight: 0.5  # 0.5 = plain average; see Stage 4 of the build plan
+output_dir: outputs/late_fusion

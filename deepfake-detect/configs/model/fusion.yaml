@@ -1,0 +1,20 @@
+name: fusion
+# visual.embed_dim and acoustic.embed_dim must match -- cross-attention
+# (Stage 5) combines Hv and Ha directly and requires the same dimension d.
+
+defaults:
+  - visual@visual
+  - acoustic@acoustic
+  - _self_
+
+cross_attention:
+  heads: 8
+  dropout: 0.1
+
+gate:
+  type: mlp
+  hidden_dim: 128
+
+aux_loss:
+  lambda_visual: 0.3
+  lambda_acoustic: 0.3

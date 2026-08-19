@@ -1,0 +1,28 @@
+# Training preset for the lean run: fewer epochs and tighter patience so a
+# full visual -> acoustic -> fusion sweep finishes in a couple of hours on a
+# 4GB laptop GPU rather than overnight.
+#
+# 1,396 train clips at batch 8 = 175 steps/epoch, so 20 epochs is ~3,500
+# steps -- enough for a small model on a 2,000-clip subset to converge or
+# to show clearly that it will not.
+
+optimizer: adamw
+lr: 3e-4
+weight_decay: 1e-4
+lr_schedule: cosine
+warmup_epochs: 1
+
+max_epochs: 20
+early_stopping_metric: val_auc
+early_stopping_patience: 5
+
+grad_clip_norm: 1.0
+
+# Resume from checkpoints/last.pt if present, so a run interrupted by a
+# thermal pause or a closed laptop lid picks up where it stopped.
+resume: true
+
+log_every_n_steps: 25
+eval_every_n_epochs: 1
+
+checkpoint_dir: ${output_dir}/checkpoints

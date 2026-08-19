@@ -1,0 +1,28 @@
+defaults:
+  - data: default
+  - model: fusion
+  - _self_
+
+seed: 42
+deterministic: true
+device: auto
+
+fusion_checkpoint: outputs/fusion/checkpoints/best.pt
+policy_json: outputs/calibration/policy.json
+output_dir: outputs/explain
+
+explain_split: test  # headline attribution numbers are reported on test (Stage 8)
+max_samples: 25      # KernelSHAP is expensive; explain a subset, not the whole split
+background_samples: 16
+
+# KernelSHAP coalition counts. The modality split has only 2 features so it
+# converges quickly; the acoustic vector has ~47, hence the larger budget.
+shap_samples_modality: 64
+shap_samples_acoustic: 128
+
+top_k_features: 8
+top_k_frames: 3
+
+# How far from an even 50/50 split one modality must lead before the
+# explanation is called "video" or "audio" rather than "both".
+dominance_margin: 0.15

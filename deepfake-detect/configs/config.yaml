@@ -1,0 +1,25 @@
+defaults:
+  - data: default
+  - training: default
+  - model: fusion
+  - _self_
+
+seed: 42
+deterministic: true
+device: auto  # auto -> cuda if available else cpu
+
+# Overridden per-run by Hydra's output dir, kept here so code can read it
+# without depending on HydraConfig at import time.
+output_dir: outputs/${model.name}
+
+experiment_name: ${model.name}_seed${seed}
+
+# Stage 5 (fusion) only -- harmless no-ops for model=visual/acoustic runs.
+# Decision: warm-start both branches from their frozen Stage 2/3 standalone
+# checkpoints, then fine-tune jointly (not frozen); the auxiliary losses
+# exist specifically to keep each branch from collapsing onto the other
+# during that joint fine-tuning.
+init_from_standalone_checkpoints: true
+visual_checkpoint: outputs/visual_branch/checkpoints/best.pt
+acoustic_checkpoint: outputs/acoustic_branch/checkpoints/best.pt
+late_fusion_results: outputs/late_fusion/results.json

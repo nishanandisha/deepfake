@@ -1,0 +1,41 @@
+# Core
+# GPU detected on this machine: NVIDIA RTX 3050 Laptop (4GB VRAM), driver
+# supports up to CUDA 13.3 -> using the cu128 wheel index (backward
+# compatible with the installed driver). Pinned to the exact +cu128 local
+# version so a plain PyPI CPU-only wheel is never picked up by accident.
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+torchaudio==2.11.0+cu128
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+scipy>=1.11  # numerically stable expit() for Stage 6 calibration
+
+# Config management (see README "Configuration system" for why Hydra)
+hydra-core>=1.3
+omegaconf>=2.3
+
+# Logging
+tensorboard>=2.16
+
+# Plotting (Stage 6 reliability diagrams)
+matplotlib>=3.8
+
+# Explanations (Stage 7: KernelSHAP over modality split + acoustic features)
+shap>=0.44
+
+# Dataset download (LAV-DF is distributed via HuggingFace)
+huggingface_hub>=0.23
+
+# Data / features (indexing + preprocessing land in Stage 1)
+# Pinned to 4.x: opencv-python 5.0 dropped the CascadeClassifier Python
+# binding and no longer bundles the haarcascade XML data files that
+# src/preprocessing/video.py relies on for face detection.
+opencv-python==4.14.0.94
+librosa>=0.10
+
+# Dev / test
+pytest>=8.0
+tqdm>=4.66
+ruff>=0.4

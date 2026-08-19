@@ -1,0 +1,59 @@
+# 6,000-clip run: 3x the lean subset, ~4.6 hours end to end.
+#
+# Purpose: the lean run underfit badly (training loss flat at ~0.70 for the
+# branches, ~1.11 for fusion), so its negative result on the cross-attention
+# claim is uninformative -- the model never fit the data. This config tests
+# whether data scale was the binding constraint.
+#
+# Everything else is held identical to configs/data/lean.yaml so the two
+# runs stay comparable; the only changes are subset_size and the paths.
+
+name: lavdf
+
+root_dir: D:/deepfake-data/LAV-DF
+splits_dir: D:/deepfake-data/splits_medium
+dfdc_root_dir: D:/deepfake-data/dfdc_absent
+
+use_cache: true
+cache_dir: D:/deepfake-data/cache_medium
+
+# 14,793 clips are on disk (3,857 real), so 6,000 at 25% real needs 1,500
+# real clips -- comfortably available.
+subset_size: 6000
+subset_real_fraction: 0.25
+subset_keep_all_real: true
+
+# Window must span the whole clip: LAV-DF edits average 0.65s and start at a
+# median of 3.2s, so a short window misses the manipulation entirely for most
+# "fake" clips. See lean.yaml for the measured coverage figures.
+frame_rate: 2
+frame_size: 112
+num_frames: 16          # 8s of coverage at 0.5s spacing
+
+audio_sample_rate: 16000
+audio_frame_ms: 25
+audio_hop_ms: 20
+num_audio_frames: 400   # 8s, matching the visual window
+
+pitch_tracker: yin      # 56x faster than pyin; voicing_confidence is a proxy
+
+use_class_balanced_sampler: true
+
+split_ratios:
+  train: 0.70
+  val: 0.15
+  calibration: 0.05
+  test: 0.10
+identity_dir_depth: 1
+
+augmentation:
+  train_only: true
+  jpeg_compression: true
+  gaussian_noise: true
+  horizontal_flip: true
+  random_resized_crop: true
+  audio_additive_noise: true
+  audio_codec_simulation: true
+
+num_workers: 2
+batch_size: 4

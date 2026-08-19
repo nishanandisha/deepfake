@@ -1,0 +1,21 @@
+optimizer: adamw
+lr: 3e-4
+weight_decay: 1e-4
+lr_schedule: cosine
+warmup_epochs: 2
+
+max_epochs: 50
+early_stopping_metric: val_auc
+early_stopping_patience: 8
+
+grad_clip_norm: 1.0
+
+# Resume from checkpoints/last.pt if present, so training can be split
+# across short sessions instead of one long GPU-pinned run. Set false (or
+# delete last.pt) to force a fresh start.
+resume: true
+
+log_every_n_steps: 50
+eval_every_n_epochs: 1
+
+checkpoint_dir: outputs/${model.name}/checkpoints

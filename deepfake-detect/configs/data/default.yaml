@@ -1,0 +1,51 @@
+name: lavdf
+
+root_dir: data/raw/lavdf
+splits_dir: data/splits
+dfdc_root_dir: data/raw/dfdc
+
+# One-time preprocessing cache. Without it, Haar face detection and
+# librosa.pyin re-run every epoch (~1-3s/clip for pyin alone), which makes
+# multi-epoch training on real data impractical. See src/preprocessing/cache.py.
+use_cache: true
+cache_dir: data/cache
+
+# Class-aware subsetting (src/preprocessing/subset.py). Deepfake datasets
+# are heavily fake-skewed; a naive random subset leaves too few real clips
+# for a stable AUC or a meaningful false-suppression rate.
+subset_size: null          # null = use the full dataset
+subset_real_fraction: 0.25
+subset_keep_all_real: true
+
+frame_rate: 25
+frame_size: 224
+num_frames: 32  # clip length (frames) fed to the visual Transformer; shorter clips are padded, longer ones truncated
+audio_sample_rate: 16000
+audio_frame_ms: 25
+audio_hop_ms: 10
+num_audio_frames: 850  # ~8.5s at 10ms hop -- must span the whole clip, see configs/data/lean.yaml
+
+# "yin" (fast) or "pyin" (slow, true voicing posterior). See _track_pitch
+# in src/models/acoustic/features.py for the tradeoff.
+pitch_tracker: yin
+
+use_class_balanced_sampler: true
+
+split_ratios:
+  train: 0.70
+  val: 0.15
+  calibration: 0.05
+  test: 0.10
+identity_dir_depth: 1
+
+augmentation:
+  train_only: true
+  jpeg_compression: true
+  gaussian_noise: true
+  horizontal_flip: true
+  random_resized_crop: true
+  audio_additive_noise: true
+  audio_codec_simulation: true
+
+num_workers: 4
+batch_size: 16

@@ -1,0 +1,69 @@
+# Lean preset: ~3-5 hours end-to-end on a 4GB laptop GPU, versus 35-60
+# hours for the full configuration. Use with `data=lean` on any script.
+#
+# Tradeoffs, all reportable as honest limitations rather than flaws:
+#   - 2,000 clips instead of the full set -> wider confidence intervals
+#   - 8 frames instead of 32 -> less temporal context for the Transformer
+#   - 112px instead of 224px -> less fine texture detail for the CNN
+# Identity-disjointness and the four manipulation pairings are preserved
+# regardless (see src/preprocessing/{splits,subset}.py).
+
+name: lavdf
+
+root_dir: data/raw/lavdf
+splits_dir: data/splits_lean
+dfdc_root_dir: data/raw/dfdc
+
+use_cache: true
+cache_dir: data/cache_lean
+
+subset_size: 2000
+subset_real_fraction: 0.25
+subset_keep_all_real: true
+
+# CRITICAL -- the analysis window must span the whole clip.
+# LAV-DF manipulations are short (mean 0.65s) and land late (median 3.2s
+# into an 8.5s clip). A 1.5s window would contain no manipulation at all
+# for 72.7% of clips labelled "fake", training the model to call genuine
+# footage fake. Measured coverage of the fake segment by window length:
+#   1.5s -> 27.3%   3.0s -> 52.6%   6.0s -> 84.2%   8.0s -> 92.1%
+# Frame spacing matters too: at 2 fps (0.5s apart) an 0.65s segment cannot
+# fall entirely between two sampled frames.
+frame_rate: 2
+frame_size: 112
+num_frames: 16          # 16 frames @ 2fps = 8s of coverage
+
+audio_sample_rate: 16000
+audio_frame_ms: 25
+audio_hop_ms: 20        # 20ms hop halves sequence length vs 10ms
+num_audio_frames: 400   # 400 * 20ms = 8s, matching the visual window
+
+# "yin" is 177x faster than "pyin" (0.10s vs 17.13s on an 8.5s clip) and is
+# what makes full-clip preprocessing tractable. It has no voicing posterior,
+# so voicing_confidence becomes a proxy -- see _track_pitch in
+# src/models/acoustic/features.py. Switch to "pyin" for the final run if
+# the voicing feature turns out to matter in the SHAP rankings.
+pitch_tracker: yin
+
+use_class_balanced_sampler: true
+
+split_ratios:
+  train: 0.70
+  val: 0.15
+  calibration: 0.05
+  test: 0.10
+identity_dir_depth: 1
+
+augmentation:
+  train_only: true
+  jpeg_compression: true
+  gaussian_noise: true
+  horizontal_flip: true
+  random_resized_crop: true
+  audio_additive_noise: true
+  audio_codec_simulation: true
+
+# Batch size 8 with 8 frames at 112px fits comfortably in 4GB VRAM.
+# Raise cautiously: VRAM scales with batch_size * num_frames.
+num_workers: 4
+batch_size: 8

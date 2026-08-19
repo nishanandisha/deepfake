@@ -1,0 +1,98 @@
+# ---------------------------------------------------------------- Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------- Node / Next.js
+node_modules/
+.next/
+out/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vercel
+
+# ---------------------------------------------------------------- Datasets
+# LAV-DF is ~100s of GB and separately licensed -- fetch it with
+# deepfake-detect/data/download.py rather than cloning it.
+data/raw/
+data/splits/*.csv
+*.mp4
+*.avi
+*.mov
+*.wav
+*.flac
+
+# Preprocessing cache and split manifests live outside the repo (D:/deepfake-data).
+cache/
+cache_*/
+splits_*/
+
+# ---------------------------------------------------------------- Run artefacts
+# Training/eval run directories: logs, tensorboard events, per-run configs.
+# Machine-specific and regenerable -- the reportable numbers are committed
+# in RESULTS.md and the exported models instead.
+outputs/
+outputs_*/
+hydra/
+multirun/
+*.log
+events.out.tfevents.*
+tensorboard/
+wandb/
+lightning_logs/
+
+# ---------------------------------------------------------------- Model weights
+# Raw training checkpoints are excluded: they carry optimizer state, are
+# 50MB+ each, and are superseded by the verified joblib artefacts in
+# deepfake-detect/models/ -- which ARE committed (see the un-ignore below).
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+!deepfake-detect/models/*.joblib
+
+# ---------------------------------------------------------------- Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+.hf_token
+.huggingface/
+
+# ---------------------------------------------------------------- Tooling / OS
+.claude/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/

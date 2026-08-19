@@ -1,0 +1,30 @@
+{
+  "exported_at": "2026-08-19T05:51:00+00:00",
+  "dataset": "LAV-DF",
+  "models": [
+    {
+      "name": "visual",
+      "file": "visual_model.joblib",
+      "size_mb": 15.99,
+      "num_parameters": 4448958,
+      "sha256": "a1304d4ca03bc22bfe2198a9cce2b39295099aa1fccc792707bf0f2492f55e3c",
+      "test_auc": 0.976057855755221
+    },
+    {
+      "name": "acoustic",
+      "file": "acoustic_model.joblib",
+      "size_mb": 1.02,
+      "num_parameters": 286410,
+      "sha256": "a173e77dea787bcd822a507e7cef991824bfbff70e67dda93f01ad88c0e4b67b",
+      "test_auc": 0.9722863040310831
+    },
+    {
+      "name": "fusion",
+      "file": "fusion_model.joblib",
+      "size_mb": 17.65,
+      "num_parameters": 4917644,
+      "sha256": "c2419d3f2f2e2e9f7e532df9783322ffdf292cab0a0420adc878fd75e1c64753",
+      "test_auc": 0.9932461146187469
+    }
+  ]
+}
