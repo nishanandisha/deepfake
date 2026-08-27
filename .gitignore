@@ -96,3 +96,6 @@ desktop.ini
 *~
 .idea/
 .vscode/
+
+# Parquet datasets exceed GitHub file limits; fetch via the data scripts.
+*.parquet

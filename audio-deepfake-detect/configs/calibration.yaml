@@ -1,0 +1,19 @@
+defaults:
+  - data: default
+  - model: acoustic
+  - _self_
+
+seed: 42
+deterministic: true
+device: auto
+
+model_artefact: models/acoustic_model.joblib
+output_dir: outputs/calibration
+
+false_suppression_ceiling: 0.02  # hard constraint: authentic audio wrongly blocked
+threshold_grid_size: 200
+
+# Manual overrides: if BOTH are set (non-null), the grid search is skipped
+# and these are used directly (operating-point metrics are still computed).
+tau_hi: null
+tau_lo: null

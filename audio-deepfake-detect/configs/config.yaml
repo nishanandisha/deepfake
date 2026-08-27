@@ -1,0 +1,24 @@
+defaults:
+  - data: default
+  - training: default
+  - model: acoustic
+  - _self_
+
+seed: 42
+deterministic: true
+device: auto  # auto -> cuda if available else cpu
+
+# Overridden per-run by Hydra's output dir, kept here so code can read it
+# without depending on HydraConfig at import time.
+output_dir: outputs/${model.name}
+
+experiment_name: ${model.name}_seed${seed}
+
+# Weights used by scripts/{evaluate,calibrate,predict}.py. The exported
+# artefact is self-contained (weights + architecture config), so these
+# scripts never need to know which Hydra config produced it.
+model_artefact: models/acoustic_model.joblib
+
+# Written by scripts/calibrate.py, consumed by scripts/predict.py. Absent
+# until you fit one -- the shipped artefact carries no policy of its own.
+policy_json: outputs/calibration/policy.json

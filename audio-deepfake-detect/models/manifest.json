@@ -1,0 +1,15 @@
+{
+  "exported_at": "2026-08-19T05:51:00+00:00",
+  "dataset": "LAV-DF",
+  "modality": "audio",
+  "models": [
+    {
+      "name": "acoustic",
+      "file": "acoustic_model.joblib",
+      "size_mb": 1.02,
+      "num_parameters": 286410,
+      "sha256": "a173e77dea787bcd822a507e7cef991824bfbff70e67dda93f01ad88c0e4b67b",
+      "test_auc": 0.9722863040310831
+    }
+  ]
+}

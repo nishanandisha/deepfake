@@ -1,0 +1,34 @@
+name: acoustic_branch
+
+n_mfcc: 20
+include_deltas: true
+include_f0: true
+include_spectral_stats: true
+include_zcr_energy: true
+
+# CAPACITY: sized down hard after diagnosing representation collapse.
+#
+# The original 4-layer d=512 ff=2048 encoder (~12M params) trained on 1,400
+# clips collapsed to a constant function: full-precision logits across 8
+# different clips agreed to 6 decimal places (spread ~1e-6). Training loss
+# sat at exactly ln(2)=0.693 because emitting the base rate is the cheapest
+# way to minimise BCE when the model has far more capacity than the data
+# supports. Every AUC we measured (0.60-0.65) was the ROC curve ranking
+# floating-point noise, which is also why it swung 0.41 <-> 0.63 between
+# epochs.
+#
+# ~30x fewer transformer parameters. Raise these again only alongside a
+# matching increase in training data.
+embed_dim: 128
+
+transformer:
+  depth: 2
+  heads: 4
+  ff_dim: 256
+  dropout: 0.1
+
+# Attention pooling replaces mean pooling: LAV-DF manipulations average
+# 0.65s inside ~8.5s clips, and averaging dilutes that to ~8% of the pooled
+# vector. A learned per-timestep weighting can concentrate on the frames
+# that actually carry evidence. Set to "mean" to reproduce the prior run.
+pooling: attention

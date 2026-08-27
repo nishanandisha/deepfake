@@ -2,27 +2,7 @@
 
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import type { AcousticShapEntry } from "@/lib/types";
-
-const FRIENDLY_NAMES: Record<string, string> = {
-  f0: "F0 (pitch)",
-  voicing_confidence: "Voicing confidence",
-  spectral_centroid: "Spectral centroid",
-  spectral_bandwidth: "Spectral bandwidth",
-  spectral_rolloff: "Spectral roll-off",
-  spectral_flatness: "Spectral flatness",
-  zero_crossing_rate: "Zero-crossing rate",
-  short_time_energy: "Short-time energy",
-};
-
-function friendlyName(feature: string): string {
-  if (FRIENDLY_NAMES[feature]) return FRIENDLY_NAMES[feature];
-  const mfccMatch = feature.match(/^mfcc(_delta2?)?_(\d+)$/);
-  if (mfccMatch) {
-    const kind = mfccMatch[1] === "_delta2" ? "MFCC ΔΔ" : mfccMatch[1] === "_delta" ? "MFCC Δ" : "MFCC";
-    return `${kind} ${mfccMatch[2]}`;
-  }
-  return feature;
-}
+import { friendlyName } from "@/lib/analysis/featureNames";
 
 export function AcousticShapChart({ entries }: { entries: AcousticShapEntry[] }) {
   const data = [...entries]
@@ -61,7 +41,7 @@ export function AcousticShapChart({ entries }: { entries: AcousticShapEntry[] })
               {data.map((entry) => (
                 <Cell
                   key={entry.feature}
-                  fill={entry.value >= 0 ? "var(--block)" : "var(--approve)"}
+                  fill={entry.value >= 0 ? "var(--deepfake)" : "var(--authentic)"}
                   fillOpacity={0.85}
                 />
               ))}
@@ -71,10 +51,10 @@ export function AcousticShapChart({ entries }: { entries: AcousticShapEntry[] })
       </div>
       <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-block/85" /> toward fake
+          <span className="h-2 w-2 rounded-sm bg-deepfake/85" /> toward fake
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-approve/85" /> toward authentic
+          <span className="h-2 w-2 rounded-sm bg-authentic/85" /> toward authentic
         </span>
       </div>
     </div>

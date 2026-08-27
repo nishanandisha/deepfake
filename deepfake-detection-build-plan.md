@@ -367,6 +367,30 @@ Keep this stage isolated from the model/training code — it should only call a 
 inference function (src/inference/pipeline.py) that wraps Stages 1-7 end to end.
 ```
 
+**Built as:** `deepfake-detect-ui/` — a Next.js app called **DeepFake**,
+talking to `deepfake-detect/scripts/serve.py` over `POST /api/infer`.
+
+It diverges from the prompt above in two deliberate ways:
+
+1. **It reports a verdict, not a moderation action.** `approve`/`flag`/`block`
+   is a queue-routing label; the question users actually bring to the tool is
+   "is this a deepfake?". The UI renders **Deepfake / Possibly manipulated /
+   Not a deepfake**, driven by `cScore` against the calibrated thresholds, and
+   states the score as manipulation likelihood so it reads in the same
+   direction as the verdict. The backend contract is untouched.
+
+2. **It localizes the manipulation.** A single clip-level score is not
+   actionable when only a few seconds were altered. The UI derives timestamped
+   spans per modality from the Grad-CAM salience and acoustic suspicious
+   regions the pipeline already returns, draws them on a per-track timeline,
+   and lets the reviewer confirm or reject each one individually before
+   recording a final call.
+
+   A branch must implicate its own modality (fake probability >= 0.5) before
+   any of its regions are surfaced — salience is relative, and every clip has
+   a most-salient frame, so without that gate the UI would invent findings on
+   authentic clips.
+
 ---
 
 ## Evaluation metrics — decided

@@ -16,9 +16,9 @@ export function StageStepper({ stageIndex }: { stageIndex: number }) {
               <span
                 className={cn(
                   "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors",
-                  state === "done" && "border-approve/50 bg-approve/15 text-approve",
-                  state === "active" && "border-cyan/50 bg-cyan/15 text-cyan",
-                  state === "pending" && "border-white/10 text-muted-foreground"
+                  state === "done" && "border-authentic/50 bg-authentic/15 text-authentic",
+                  state === "active" && "border-brand/50 bg-brand/15 text-brand",
+                  state === "pending" && "border-border text-muted-foreground"
                 )}
               >
                 {state === "done" && <Check className="h-3 w-3" />}

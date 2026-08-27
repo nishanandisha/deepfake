@@ -4,6 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   DeepFake — color system
+   ---------------------------------------------------------------------------
+   Core palette (every surface, text tone, accent and chart series derives from
+   these four):
+
+     --palette-ink    #1B262C  rgb(27, 38, 44)    darkest — page ground
+     --palette-deep   #0F4C75  rgb(15, 76, 117)   raised surfaces, fills
+     --palette-brand  #3282B8  rgb(50, 130, 184)  primary accent, visual stream
+     --palette-soft   #BBE1FA  rgb(187, 225, 250) foreground text, acoustic stream
+
+   Three status hues sit outside the palette on purpose. The palette is
+   monochromatic blue, so a verdict rendered in it could not separate
+   "deepfake" from "not deepfake" at a glance — which is the one thing this
+   screen exists to communicate. They are used ONLY for verdict signalling.
+--------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -46,15 +63,19 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
 
-  /* Forensics-tool accent + decision system */
-  --color-cyan: var(--cyan);
-  --color-violet: var(--violet);
-  --color-approve: var(--approve);
-  --color-approve-foreground: var(--approve-foreground);
-  --color-flag: var(--flag);
-  --color-flag-foreground: var(--flag-foreground);
-  --color-block: var(--block);
-  --color-block-foreground: var(--block-foreground);
+  /* Palette accents — brand = visual stream, brand-soft = acoustic stream */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-deep: var(--brand-deep);
+
+  /* Verdict semantics */
+  --color-authentic: var(--authentic);
+  --color-authentic-foreground: var(--authentic-foreground);
+  --color-uncertain: var(--uncertain);
+  --color-uncertain-foreground: var(--uncertain-foreground);
+  --color-deepfake: var(--deepfake);
+  --color-deepfake-foreground: var(--deepfake-foreground);
+
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
 }
@@ -62,71 +83,63 @@
 :root {
   color-scheme: dark;
 
-  --background: oklch(0.135 0.014 260);
-  --foreground: oklch(0.96 0.006 260);
-  --card: oklch(0.175 0.016 260);
-  --card-foreground: oklch(0.96 0.006 260);
-  --popover: oklch(0.17 0.017 260);
-  --popover-foreground: oklch(0.96 0.006 260);
-  --primary: oklch(0.82 0.13 205);
-  --primary-foreground: oklch(0.14 0.02 260);
-  --secondary: oklch(0.24 0.02 260);
-  --secondary-foreground: oklch(0.93 0.006 260);
-  --muted: oklch(0.22 0.018 260);
-  --muted-foreground: oklch(0.66 0.02 260);
-  --accent: oklch(0.27 0.03 270);
-  --accent-foreground: oklch(0.95 0.01 260);
-  --destructive: oklch(0.64 0.21 25);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.12 220);
-  --chart-1: oklch(0.78 0.15 200);
-  --chart-2: oklch(0.68 0.19 296);
-  --chart-3: oklch(0.75 0.17 80);
-  --chart-4: oklch(0.68 0.2 25);
-  --chart-5: oklch(0.7 0.14 150);
+  /* The four source colors, kept verbatim so everything below can be traced */
+  --palette-ink: #1b262c;
+  --palette-deep: #0f4c75;
+  --palette-brand: #3282b8;
+  --palette-soft: #bbe1fa;
+
+  --background: #1b262c;
+  --foreground: #bbe1fa;
+  --card: #192c37;
+  --card-foreground: #bbe1fa;
+  --popover: #1a2e3a;
+  --popover-foreground: #bbe1fa;
+  --primary: #3282b8;
+  --primary-foreground: #0b1418;
+  --secondary: #183040;
+  --secondary-foreground: #bbe1fa;
+  --muted: #182e3c;
+  --muted-foreground: #7b96a8;
+  --accent: #163448;
+  --accent-foreground: #bbe1fa;
+  --destructive: #e5484d;
+  --border: rgb(187 225 250 / 12%);
+  --input: rgb(187 225 250 / 16%);
+  --ring: #3282b8;
+
+  --chart-1: #3282b8;
+  --chart-2: #bbe1fa;
+  --chart-3: #0f4c75;
+  --chart-4: #e5484d;
+  --chart-5: #e8b04b;
+
   --radius: 0.75rem;
-  --sidebar: oklch(0.12 0.014 260);
-  --sidebar-foreground: oklch(0.93 0.006 260);
-  --sidebar-primary: oklch(0.82 0.13 205);
-  --sidebar-primary-foreground: oklch(0.14 0.02 260);
-  --sidebar-accent: oklch(0.2 0.02 260);
-  --sidebar-accent-foreground: oklch(0.93 0.006 260);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.7 0.12 220);
 
-  /* Accent gradient + decision semantics */
-  --cyan: oklch(0.82 0.13 205);
-  --violet: oklch(0.68 0.19 296);
-  --approve: oklch(0.72 0.17 150);
-  --approve-foreground: oklch(0.16 0.03 150);
-  --flag: oklch(0.8 0.16 85);
-  --flag-foreground: oklch(0.18 0.03 85);
-  --block: oklch(0.68 0.21 25);
-  --block-foreground: oklch(0.97 0.01 25);
-  --glass: oklch(0.2 0.02 260 / 55%);
-  --glass-border: oklch(1 0 0 / 10%);
-}
+  --sidebar: #162026;
+  --sidebar-foreground: #bbe1fa;
+  --sidebar-primary: #3282b8;
+  --sidebar-primary-foreground: #0b1418;
+  --sidebar-accent: #183040;
+  --sidebar-accent-foreground: #bbe1fa;
+  --sidebar-border: rgb(187 225 250 / 10%);
+  --sidebar-ring: #3282b8;
 
-.dark {
-  --background: oklch(0.135 0.014 260);
-  --foreground: oklch(0.96 0.006 260);
-  --card: oklch(0.175 0.016 260);
-  --card-foreground: oklch(0.96 0.006 260);
-  --popover: oklch(0.17 0.017 260);
-  --popover-foreground: oklch(0.96 0.006 260);
-  --primary: oklch(0.82 0.13 205);
-  --primary-foreground: oklch(0.14 0.02 260);
-  --secondary: oklch(0.24 0.02 260);
-  --secondary-foreground: oklch(0.93 0.006 260);
-  --muted: oklch(0.22 0.018 260);
-  --muted-foreground: oklch(0.66 0.02 260);
-  --accent: oklch(0.27 0.03 270);
-  --accent-foreground: oklch(0.95 0.01 260);
-  --destructive: oklch(0.64 0.21 25);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.12 220);
+  /* Palette accents */
+  --brand: #3282b8;
+  --brand-soft: #bbe1fa;
+  --brand-deep: #0f4c75;
+
+  /* Verdict semantics — the only non-palette hues in the system */
+  --authentic: #3fbfa0;
+  --authentic-foreground: #06201a;
+  --uncertain: #e8b04b;
+  --uncertain-foreground: #241905;
+  --deepfake: #e5484d;
+  --deepfake-foreground: #2a0a0c;
+
+  --glass: rgb(25 44 55 / 55%);
+  --glass-border: rgb(187 225 250 / 10%);
 }
 
 @layer base {
@@ -145,8 +158,8 @@
   .glass-panel {
     background: linear-gradient(
       180deg,
-      color-mix(in oklch, var(--card) 92%, transparent),
-      color-mix(in oklch, var(--card) 78%, transparent)
+      color-mix(in srgb, var(--card) 94%, transparent),
+      color-mix(in srgb, var(--card) 80%, transparent)
     );
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(20px);
@@ -154,29 +167,22 @@
   }
 
   .accent-gradient-text {
-    background: linear-gradient(100deg, var(--cyan), var(--violet));
+    background: linear-gradient(100deg, var(--brand), var(--brand-soft));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .accent-gradient-bg {
-    background: linear-gradient(100deg, var(--cyan), var(--violet));
+    background: linear-gradient(100deg, var(--brand-deep), var(--brand));
   }
 
   .grid-glow-bg {
     background-image:
-      radial-gradient(circle at 15% 10%, color-mix(in oklch, var(--cyan) 16%, transparent), transparent 45%),
-      radial-gradient(circle at 85% 20%, color-mix(in oklch, var(--violet) 14%, transparent), transparent 45%),
-      linear-gradient(
-        color-mix(in oklch, var(--foreground) 5%, transparent) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        90deg,
-        color-mix(in oklch, var(--foreground) 5%, transparent) 1px,
-        transparent 1px
-      );
+      radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 45%),
+      radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--brand-deep) 30%, transparent), transparent 45%),
+      linear-gradient(color-mix(in srgb, var(--brand-soft) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--brand-soft) 5%, transparent) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 42px 42px, 42px 42px;
     background-position: 0 0, 0 0, -1px -1px, -1px -1px;
   }

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Eye, Ear } from "lucide-react";
 import type { InferenceResult } from "@/lib/types";
+import { isAudioOnly } from "@/lib/analysis/localization";
 
 function Bar({
   icon: Icon,
@@ -41,6 +42,31 @@ export function ModalitySplit({ result }: { result: InferenceResult }) {
   const visualPct = result.gate;
   const acousticPct = 1 - result.gate;
 
+  // Audio-only: there is no gate to report, because there was nothing to
+  // weigh the acoustic branch against.
+  if (isAudioOnly(result)) {
+    return (
+      <div className="glass-panel rounded-2xl p-5">
+        <h3 className="text-sm font-semibold text-foreground">Modality attribution</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          This file has no video track, so the acoustic branch ran on its own — there is no
+          cross-modal gate to report.
+        </p>
+        <div className="mt-5 space-y-4 border-t border-border pt-4">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Branch fake probability
+          </p>
+          <Bar
+            icon={Ear}
+            label="Acoustic branch"
+            value={result.yHatAcoustic}
+            color="var(--brand-soft)"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel rounded-2xl p-5">
       <h3 className="text-sm font-semibold text-foreground">Modality attribution</h3>
@@ -50,29 +76,29 @@ export function ModalitySplit({ result }: { result: InferenceResult }) {
 
       <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full">
         <motion.div
-          className="h-full bg-cyan"
+          className="h-full bg-brand"
           initial={{ width: 0 }}
           animate={{ width: `${visualPct * 100}%` }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
         />
         <motion.div
-          className="h-full bg-violet"
+          className="h-full bg-brand-soft"
           initial={{ width: 0 }}
           animate={{ width: `${acousticPct * 100}%` }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
       <div className="mt-2 flex justify-between font-mono text-[11px] text-muted-foreground">
-        <span className="text-cyan">visual {Math.round(visualPct * 100)}%</span>
-        <span className="text-violet">acoustic {Math.round(acousticPct * 100)}%</span>
+        <span className="text-brand">visual {Math.round(visualPct * 100)}%</span>
+        <span className="text-brand-soft">acoustic {Math.round(acousticPct * 100)}%</span>
       </div>
 
-      <div className="mt-5 space-y-4 border-t border-white/[0.06] pt-4">
+      <div className="mt-5 space-y-4 border-t border-border pt-4">
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
           Per-branch fake probability
         </p>
-        <Bar icon={Eye} label="Visual branch" value={result.yHatVisual} color="var(--cyan)" />
-        <Bar icon={Ear} label="Acoustic branch" value={result.yHatAcoustic} color="var(--violet)" />
+        <Bar icon={Eye} label="Visual branch" value={result.yHatVisual ?? 0} color="var(--brand)" />
+        <Bar icon={Ear} label="Acoustic branch" value={result.yHatAcoustic} color="var(--brand-soft)" />
       </div>
     </div>
   );

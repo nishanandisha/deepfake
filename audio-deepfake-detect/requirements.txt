@@ -1,0 +1,38 @@
+# Core. torchvision/opencv are deliberately absent: this package has no
+# video path, so nothing here decodes or transforms frames.
+torch>=2.2
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+scipy>=1.11  # numerically stable expit() for calibration
+
+# Config management
+hydra-core>=1.3
+omegaconf>=2.3
+
+# Logging
+tensorboard>=2.16
+
+# Plotting (reliability diagrams)
+matplotlib>=3.8
+
+# Explanations (KernelSHAP over the named acoustic features)
+shap>=0.44
+
+# Audio loading + feature extraction
+librosa>=0.10
+soundfile>=0.12  # librosa's decoder for wav/flac; the tests also write with it
+# src/preprocessing/audio.py decodes .mp4-muxed audio through this bundled
+# ffmpeg build. Without it every decode of a video container fails.
+imageio-ffmpeg>=0.5
+
+# Serialisation format for the models/ artefact
+joblib>=1.3
+
+# Dataset download (LAV-DF is distributed via HuggingFace)
+huggingface_hub>=0.23
+
+# Dev / test
+pytest>=8.0
+tqdm>=4.66
+ruff>=0.4

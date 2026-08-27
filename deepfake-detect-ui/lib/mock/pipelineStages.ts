@@ -25,7 +25,7 @@ export const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: "calibration",
     label: "Calibration & policy",
-    detail: "Temperature scaling + approve/flag/block threshold policy",
+    detail: "Temperature scaling + calibrated deepfake / genuine thresholds",
   },
   {
     id: "explanation",

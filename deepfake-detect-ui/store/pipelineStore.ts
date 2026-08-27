@@ -5,6 +5,7 @@ import { isBackendAvailable, runRealInference } from "@/lib/api/inference";
 import { runMockInference } from "@/lib/mock/engine";
 import { QUEUE_SEED } from "@/lib/mock/queueSeed";
 import { PIPELINE_STAGES } from "@/lib/mock/pipelineStages";
+import { deepfakeScore, verdictFor } from "@/lib/analysis/localization";
 import type { InferenceResult, QueueItem, ScenarioId } from "@/lib/types";
 
 export type RunStatus = "idle" | "running" | "done" | "error";
@@ -76,8 +77,8 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
           {
             sampleId: result.sampleId,
             fileName: result.fileName,
-            decision: result.decision,
-            cScore: result.cScore,
+            verdict: verdictFor(result),
+            deepfakeScore: deepfakeScore(result),
             createdAt: result.createdAt,
           },
           ...state.queue,

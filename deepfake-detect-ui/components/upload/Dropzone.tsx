@@ -39,7 +39,7 @@ export function Dropzone() {
     return (
       <div className="glass-panel rounded-2xl p-4 sm:p-5">
         <div className="flex items-start gap-4">
-          <div className="relative shrink-0 overflow-hidden rounded-xl border border-glass-border bg-black/40">
+          <div className="relative shrink-0 overflow-hidden rounded-xl border border-glass-border bg-background">
             {file.type.startsWith("video/") ? (
               <video
                 src={previewUrl}
@@ -50,7 +50,7 @@ export function Dropzone() {
               />
             ) : (
               <div className="flex h-24 w-40 items-center justify-center">
-                <FileVideo2 className="h-8 w-8 text-cyan" />
+                <FileVideo2 className="h-8 w-8 text-brand" />
               </div>
             )}
           </div>
@@ -89,7 +89,7 @@ export function Dropzone() {
       }}
       className={cn(
         "glass-panel group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
-        isDragging ? "border-cyan/70 bg-cyan/5" : "border-white/10 hover:border-white/20"
+        isDragging ? "border-brand/70 bg-brand/5" : "border-border hover:border-input"
       )}
     >
       <input
@@ -109,7 +109,7 @@ export function Dropzone() {
         Drop a video or audio clip, or click to browse
       </p>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Processed entirely in your browser — nothing leaves this device.
+        MP4, MOV, WAV or MP3 — the picture and the sound are checked separately.
       </p>
     </div>
   );

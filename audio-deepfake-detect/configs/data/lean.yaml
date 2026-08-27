@@ -1,0 +1,53 @@
+# Lean preset: a laptop-scale run. Use with `data=lean` on any script.
+#
+# Tradeoffs, all reportable as honest limitations rather than flaws:
+#   - 2,000 clips instead of the full set -> wider confidence intervals
+#   - a 20ms hop instead of 10ms -> half the temporal resolution
+# Identity-disjointness and the four manipulation pairings are preserved
+# regardless (see src/preprocessing/{splits,subset}.py).
+
+name: lavdf
+
+root_dir: data/raw/lavdf
+splits_dir: data/splits_lean
+
+use_cache: true
+cache_dir: data/cache_lean
+
+subset_size: 2000
+subset_real_fraction: 0.25
+subset_keep_all_real: true
+
+# CRITICAL -- the analysis window must span the whole clip.
+# LAV-DF manipulations are short (mean 0.65s) and land late (median 3.2s
+# into an 8.5s clip). A window that covers only the first seconds would
+# contain no manipulation at all for most clips labelled "fake", training
+# the model to call genuine audio fake.
+audio_sample_rate: 16000
+audio_frame_ms: 25
+audio_hop_ms: 20        # 20ms hop halves sequence length vs 10ms
+num_audio_frames: 400   # 400 * 20ms = 8s of coverage
+
+# "yin" is ~177x faster than "pyin" (0.10s vs 17.13s on an 8.5s clip) and is
+# what makes full-clip preprocessing tractable. It has no voicing posterior,
+# so voicing_confidence becomes a proxy -- see _track_pitch in
+# src/models/acoustic/features.py. Switch to "pyin" for a final run if the
+# voicing feature turns out to matter in the SHAP rankings.
+pitch_tracker: yin
+
+use_class_balanced_sampler: true
+
+split_ratios:
+  train: 0.70
+  val: 0.15
+  calibration: 0.05
+  test: 0.10
+identity_dir_depth: 1
+
+augmentation:
+  train_only: true
+  audio_additive_noise: true
+  audio_codec_simulation: true
+
+num_workers: 4
+batch_size: 8

@@ -160,6 +160,7 @@ export async function runMockInference({ file, scenario, onStage }: RunOptions):
     tauHi: TAU_HI,
     gate,
     yHatVisual,
+    hasVideo: true,
     yHatAcoustic,
     yHatFused,
     acousticShap: def.acousticShap.map((entry) => ({

@@ -158,8 +158,36 @@ python scripts/serve.py \
 cd ../deepfake-detect-ui && npm run dev
 ```
 
-The UI header shows **live model** or **mock data** so a demo can never
-present simulated output as real.
+The UI ("**DeepFake**") header shows **live model** or **mock data** so a demo
+can never present simulated output as real.
+
+Note the API routes are `GET /api/health` and `POST /api/infer` — not
+`/health`.
+
+The `decision` column above is the raw policy label. The UI presents it as a
+verdict (`block` -> Deepfake, `flag` -> Possibly manipulated, `approve` ->
+Not a deepfake), reports the score as manipulation likelihood (`1 - cScore`),
+and localizes which spans of each track were manipulated. Verified on the
+bundled samples:
+
+```
+sample              verdict         likelihood  localized regions
+real/002053.mp4     Not a deepfake      1%      none (both tracks clean)
+fake/000919.mp4     Deepfake           98%      1 video span, 4 audio regions
+```
+
+Audio-only (video track stripped with `ffmpeg -vn`, so ground truth is
+carried over from the source clip):
+
+```
+sample                   verdict         likelihood  localized regions
+045769_voicenote.mp3     Not a deepfake      3%      none
+001714_voicenote.mp3     Deepfake          100%      2 audio regions
+```
+
+These agree with the standalone `audio-deepfake-detect` model on the same two
+files (P(fake) 0.0089 and 1.0000), which is a useful cross-check since the
+two use different weights.
 
 ## Limitations
 

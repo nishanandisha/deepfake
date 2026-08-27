@@ -17,9 +17,9 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aegis | Moderator Review Console",
+  title: "DeepFake — Video & Audio Forensics",
   description:
-    "Explainable multimodal deepfake detection — calibrated decisions, modality attribution, and forensic evidence for content moderators.",
+    "Tells you whether a clip is a deepfake — and exactly which parts of the video and audio were faked.",
 };
 
 export default function RootLayout({

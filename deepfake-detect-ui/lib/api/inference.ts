@@ -55,8 +55,17 @@ export async function runRealInference({
     const response = await fetch(`${BASE_URL}/api/infer`, { method: "POST", body });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
+      // serve.py reports failures as {"error": "..."} -- surface that message
+      // on its own. Wrapping it in the raw JSON put things like "Audio is too
+      // short to analyse" behind a status code and a pair of braces.
+      let message = "";
+      try {
+        message = (JSON.parse(detail) as { error?: string }).error ?? "";
+      } catch {
+        message = detail;
+      }
       throw new Error(
-        `Inference failed (${response.status}). ${detail.slice(0, 200)}`.trim()
+        message.trim() || `Inference failed (${response.status}).`
       );
     }
     const result = (await response.json()) as InferenceResult;

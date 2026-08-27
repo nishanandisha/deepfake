@@ -12,6 +12,7 @@ training internals.
 
 import base64
 import json
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -102,10 +103,18 @@ class DeepfakeInferencePipeline:
 
     Model loading takes seconds and dominates per-clip cost, so the serving
     layer should construct this once at startup rather than per request.
+
+    `infer` is serialised by a lock: Grad-CAM registers forward hooks on the
+    shared model, so two concurrent calls interleave a hook from one with the
+    `torch.no_grad()` forward of the other -- the hooked output then has no
+    grad and `register_hook` raises "cannot register a hook on a tensor that
+    doesn't require gradient". Since serve.py is a ThreadingHTTPServer, two
+    browser uploads in flight at once are enough to trigger it.
     """
 
     def __init__(self, cfg: InferenceConfig, model_cfg):
         self.cfg = cfg
+        self._lock = threading.Lock()
         self.device = torch.device(
             ("cuda" if torch.cuda.is_available() else "cpu") if cfg.device == "auto" else cfg.device
         )
@@ -130,6 +139,22 @@ class DeepfakeInferencePipeline:
 
     # -- preprocessing -----------------------------------------------------
 
+    def _prepare_audio(self, media_path: str):
+        """Acoustic half only -- no video decode, for audio-only uploads."""
+        cfg = self.cfg
+        signal = load_audio(media_path, sample_rate=cfg.sample_rate)
+        _require_analysable_audio(signal, cfg.sample_rate)
+        features, _ = extract_acoustic_features(
+            signal, sample_rate=cfg.sample_rate, frame_ms=cfg.frame_ms,
+            hop_ms=cfg.hop_ms, n_mfcc=cfg.n_mfcc, pitch_tracker=cfg.pitch_tracker,
+        )
+        features, a_mask = _pad_or_truncate(features, cfg.num_audio_frames)
+        return (
+            torch.from_numpy(features).float().unsqueeze(0).to(self.device),
+            torch.from_numpy(a_mask).unsqueeze(0).to(self.device),
+            signal,
+        )
+
     def _prepare(self, media_path: str):
         cfg = self.cfg
         frames = preprocess_video(media_path, frame_rate=cfg.frame_rate, size=cfg.frame_size)
@@ -138,6 +163,7 @@ class DeepfakeInferencePipeline:
         frames, v_mask = _pad_or_truncate(frames, cfg.num_frames)
 
         signal = load_audio(media_path, sample_rate=cfg.sample_rate)
+        _require_analysable_audio(signal, cfg.sample_rate)
         features, _ = extract_acoustic_features(
             signal, sample_rate=cfg.sample_rate, frame_ms=cfg.frame_ms,
             hop_ms=cfg.hop_ms, n_mfcc=cfg.n_mfcc, pitch_tracker=cfg.pitch_tracker,
@@ -156,6 +182,61 @@ class DeepfakeInferencePipeline:
     # -- public API --------------------------------------------------------
 
     def infer(self, media_path: str, file_name: Optional[str] = None) -> Dict:
+        with self._lock:
+            if _has_video_stream(media_path):
+                return self._infer_locked(media_path, file_name)
+            return self._infer_audio_only(media_path, file_name)
+
+    def _infer_audio_only(self, media_path: str, file_name: Optional[str] = None) -> Dict:
+        """Voice notes and other audio-only uploads.
+
+        Runs the acoustic branch standalone rather than feeding the fusion
+        model a blank video track. `y_hat_acoustic_logit` is produced from
+        `pool_ha(acoustic_encoder(...))`, which never reads the visual stream,
+        so this is the same computation the acoustic branch performs inside a
+        full audio-visual pass -- not an approximation of it.
+
+        The temperature and thresholds, however, were fitted on the *fused*
+        logit. Reusing them here is a documented approximation; the response
+        sets `hasVideo: false` so the UI can say so rather than presenting an
+        audio-only score as equally calibrated.
+        """
+        features_t, a_mask, signal = self._prepare_audio(media_path)
+
+        with torch.no_grad():
+            ha = self.model.acoustic_encoder(features_t, padding_mask=a_mask)
+            logit = self.model.acoustic_aux_head(self.model.pool_ha(ha, a_mask)).squeeze(-1)
+
+        logit_f = float(logit.item())
+        c_score = float(apply_temperature(np.array([logit_f]), self.temperature)[0])
+        decision = decide(c_score, self.tau_lo, self.tau_hi)
+        p_fake = round(float(torch.sigmoid(logit).item()), 4)
+
+        return {
+            "sampleId": f"sample_{int(time.time()*1000):x}",
+            "fileName": file_name or Path(media_path).name,
+            "createdAt": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()),
+            "decision": decision,
+            "cScore": round(c_score, 4),
+            "tauLo": self.tau_lo,
+            "tauHi": self.tau_hi,
+            # No visual stream: the gate is definitionally all-acoustic and
+            # there is no visual branch output to report.
+            "gate": 0.0,
+            "yHatVisual": None,
+            "yHatAcoustic": p_fake,
+            "yHatFused": p_fake,
+            "acousticShap": self._acoustic_shap(features_t, a_mask),
+            "visualSaliency": [],
+            "waveform": _waveform(signal, self.cfg.sample_rate),
+            "falseSuppressionRate": self.false_suppression_rate,
+            "reviewQueueRate": self.review_queue_rate,
+            "manipulatedModalityGuess": "audio" if decision != "approve" else "none",
+            "scenario": "fake_audio" if decision != "approve" else "authentic",
+            "hasVideo": False,
+        }
+
+    def _infer_locked(self, media_path: str, file_name: Optional[str] = None) -> Dict:
         cfg = self.cfg
         frames_uint8, frames_t, v_mask, features_t, a_mask, signal = self._prepare(media_path)
 
@@ -189,6 +270,7 @@ class DeepfakeInferencePipeline:
             "reviewQueueRate": self.review_queue_rate,
             "manipulatedModalityGuess": implicated_modality(modality_split),
             "scenario": _scenario_for(decision, modality_split),
+            "hasVideo": True,
         }
 
     def _modality_split(self, out) -> Dict[str, float]:
@@ -233,6 +315,47 @@ class DeepfakeInferencePipeline:
             }
             for idx in sorted(order)
         ]
+
+
+# librosa's delta features use a width-9 window, so anything shorter than
+# nine acoustic frames throws deep inside feature extraction ("width=9 cannot
+# exceed data.shape[axis]=6"). Guard up front with a message a user can act on.
+MIN_AUDIO_SECONDS = 0.5
+
+
+def _require_analysable_audio(signal: np.ndarray, sample_rate: int) -> None:
+    seconds = len(signal) / float(sample_rate)
+    if seconds < MIN_AUDIO_SECONDS:
+        raise ValueError(
+            f"Audio is too short to analyse ({seconds:.2f}s). "
+            f"At least {MIN_AUDIO_SECONDS}s of sound is needed."
+        )
+
+
+def _has_video_stream(media_path: str) -> bool:
+    """True if OpenCV can decode at least *two* frames.
+
+    Probing beats trusting the extension: a .mp4 can legitimately carry no
+    video track, and cap.isOpened() alone returns True for some audio-only
+    containers.
+
+    Two frames, not one, because an MP3/M4A carrying embedded cover art
+    exposes that artwork as a single-frame video stream. Requiring one frame
+    sent those files down the audio-visual path, where the "video" was one
+    still image of album art -- CAP_PROP_FRAME_COUNT is no help either, it
+    reports nonsense (573649) for such a file. A clip with only one decodable
+    frame has no temporal signal for the visual branch regardless, so
+    treating it as audio-only is the right call in both cases.
+    """
+    cap = cv2.VideoCapture(str(media_path))
+    try:
+        if not cap.isOpened():
+            return False
+        if not cap.read()[0]:
+            return False
+        return bool(cap.read()[0])
+    finally:
+        cap.release()
 
 
 def _scenario_for(decision: str, split: Dict[str, float]) -> str:

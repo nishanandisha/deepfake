@@ -1,0 +1,12 @@
+torch>=2.2
+torchaudio>=2.2        # ships WAVLM_BASE_PLUS; no `transformers` needed
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+scipy>=1.11
+soundfile>=0.12
+librosa>=0.10
+huggingface_hub>=0.23  # dataset download
+tqdm>=4.66
+matplotlib>=3.8
+pytest>=8.0
