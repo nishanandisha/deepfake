@@ -47,8 +47,8 @@ export function ModalitySplit({ result }: { result: InferenceResult }) {
   if (isAudioOnly(result)) {
     return (
       <div className="glass-panel rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-foreground">Modality attribution</h3>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <h3 className="t-title font-semibold text-foreground">Modality attribution</h3>
+        <p className="t-support mt-1 text-muted-foreground">
           This file has no video track, so the acoustic branch ran on its own — there is no
           cross-modal gate to report.
         </p>
@@ -69,8 +69,8 @@ export function ModalitySplit({ result }: { result: InferenceResult }) {
 
   return (
     <div className="glass-panel rounded-2xl p-5">
-      <h3 className="text-sm font-semibold text-foreground">Modality attribution</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <h3 className="t-title font-semibold text-foreground">Modality attribution</h3>
+      <p className="t-support mt-1 text-muted-foreground">
         Learned gate weighting from cross-modal fusion — which stream drove the fused decision.
       </p>
 

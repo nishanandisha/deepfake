@@ -55,7 +55,7 @@ export function NarrativeSummary({
     <div className="glass-panel rounded-2xl p-5">
       <div className="flex items-center gap-2">
         <ScanSearch className="h-4 w-4 text-brand" />
-        <h3 className="text-sm font-semibold text-foreground">What the model found</h3>
+        <h3 className="t-title font-semibold text-foreground">What the model found</h3>
       </div>
 
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">

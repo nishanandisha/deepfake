@@ -103,10 +103,10 @@ export function TamperTimeline({
     <div className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="t-title font-semibold text-foreground">
             {segments.length > 0 ? "Where the manipulation is" : "Timeline"}
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="t-support mt-1 text-muted-foreground">
             {segments.length > 0
               ? "Each red block is a stretch of the clip the model implicates. Select one to inspect the evidence behind it."
               : audioOnly

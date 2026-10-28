@@ -22,51 +22,49 @@ import {
   VERDICT_BLURB,
 } from "@/lib/analysis/localization";
 import type { InferenceResult, SegmentJudgement } from "@/lib/types";
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const, delay },
-});
+import { cn } from "@/lib/utils";
+import { useEntrance } from "@/lib/motion";
 
 /**
  * Mounted with `key={result.sampleId}`, so a new scan starts with a clean
  * selection and no carried-over judgements without an effect to reset them.
  */
 export function ResultsView({ result }: { result: InferenceResult }) {
+  const entrance = useEntrance();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [judgements, setJudgements] = useState<Record<string, SegmentJudgement>>({});
 
   const segments = useMemo(() => buildTamperSegments(result), [result]);
   const verdict = verdictFor(result);
   const audioOnly = isAudioOnly(result);
+  // Audio-only uploads carry no named-feature attribution (WavLM embeddings
+  // have no descriptors to name), so the panel and its grid column both go.
+  const hasAcousticShap = result.acousticShap.length > 0;
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-4 pb-16 sm:space-y-5">
       <motion.div
-        {...fadeUp(0)}
-        className="glass-panel flex flex-col gap-6 rounded-2xl p-6 sm:flex-row sm:items-center"
+        {...entrance(0)}
+        className="glass-panel glass-panel-raised flex flex-col gap-6 rounded-2xl p-6 sm:flex-row sm:items-center"
       >
         <ScoreGauge score={deepfakeScore(result)} verdict={verdict} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-mono text-xs text-muted-foreground">{result.fileName}</p>
+          <p className="t-meta truncate font-mono text-muted-foreground">{result.fileName}</p>
           <div className="mt-2">
             <VerdictBadge verdict={verdict} size="lg" />
           </div>
-          <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-            {VERDICT_BLURB[verdict]}
-          </p>
-          <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+          <p className="t-support mt-3 text-muted-foreground">{VERDICT_BLURB[verdict]}</p>
+          <p className="t-meta nums mt-2 font-mono text-muted-foreground/80">
             {result.sampleId} · scanned {new Date(result.createdAt).toLocaleTimeString()}
           </p>
         </div>
       </motion.div>
 
-      <motion.div {...fadeUp(0.05)}>
+      <motion.div {...entrance(1)} className="-mt-1 sm:-mt-1.5">
         <NarrativeSummary result={result} segments={segments} />
       </motion.div>
 
-      <motion.div {...fadeUp(0.1)}>
+      <motion.div {...entrance(2)}>
         <TamperTimeline
           segments={segments}
           duration={clipDuration(result)}
@@ -76,7 +74,7 @@ export function ResultsView({ result }: { result: InferenceResult }) {
         />
       </motion.div>
 
-      <motion.div {...fadeUp(0.15)}>
+      <motion.div {...entrance(3)}>
         <SegmentReview
           segments={segments}
           selectedId={selectedId}
@@ -86,7 +84,7 @@ export function ResultsView({ result }: { result: InferenceResult }) {
         />
       </motion.div>
 
-      <motion.div {...fadeUp(0.2)}>
+      <motion.div {...entrance(4)}>
         <ReviewDecision
           sampleId={result.sampleId}
           systemVerdict={verdict}
@@ -95,26 +93,31 @@ export function ResultsView({ result }: { result: InferenceResult }) {
         />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <motion.div {...fadeUp(0.25)}>
+      <div className={cn("grid grid-cols-1 gap-5", hasAcousticShap && "md:grid-cols-2")}>
+        <motion.div {...entrance(5)}>
           <ModalitySplit result={result} />
         </motion.div>
-        <motion.div {...fadeUp(0.3)}>
-          <AcousticShapChart entries={result.acousticShap} />
-        </motion.div>
+        {hasAcousticShap && (
+          <motion.div {...entrance(6)}>
+            <AcousticShapChart
+              entries={result.acousticShap}
+              source={result.acousticShapSource}
+            />
+          </motion.div>
+        )}
       </div>
 
       {!audioOnly && (
-        <motion.div {...fadeUp(0.35)}>
+        <motion.div {...entrance(7)}>
           <SaliencyFilmstrip frames={result.visualSaliency} segments={segments} />
         </motion.div>
       )}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <motion.div {...fadeUp(0.4)}>
+        <motion.div {...entrance(8)}>
           <WaveformPanel waveform={result.waveform} segments={segments} />
         </motion.div>
-        <motion.div {...fadeUp(0.45)}>
+        <motion.div {...entrance(9)}>
           <PolicyPanel result={result} />
         </motion.div>
       </div>

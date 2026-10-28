@@ -21,7 +21,7 @@ export function WaveformPanel({
   if (!waveform || waveform.peaks.length === 0) {
     return (
       <div className="glass-panel rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-foreground">Audio track</h3>
+        <h3 className="t-title font-semibold text-foreground">Audio track</h3>
         <div className="mt-4 flex h-24 items-center justify-center gap-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground">
           <AudioLines className="h-4 w-4" />
           No decodable audio track in this file.
@@ -36,12 +36,12 @@ export function WaveformPanel({
   return (
     <div className="glass-panel rounded-2xl p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Audio track</h3>
+        <h3 className="t-title font-semibold text-foreground">Audio track</h3>
         <span className="font-mono text-[11px] text-muted-foreground">
           {durationSeconds.toFixed(1)}s
         </span>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="t-support mt-1 text-muted-foreground">
         {audioSegments.length > 0
           ? "Red bands are the stretches flagged as synthetic speech — the same regions listed above."
           : "Nothing in this track resembled synthetic speech."}

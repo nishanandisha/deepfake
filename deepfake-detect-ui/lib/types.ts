@@ -59,7 +59,21 @@ export interface InferenceResult {
    */
   hasVideo: boolean;
 
+  /**
+   * Spans the audio localiser isolated as synthetic, already gated server-side
+   * for confidence and coverage. Absent on older responses and on the mock
+   * engine, which is why every read of it is optional.
+   */
+  regions?: { startSeconds: number; endSeconds: number; confidence: number }[];
+  /** Highest single-window P(AI); the clip score is a mean and hides spikes. */
+  pAiGeneratedMax?: number;
   acousticShap: AcousticShapEntry[];
+  /**
+   * Set by the router when `acousticShap` was carried over from the legacy
+   * acoustic branch in `deepfake-detect` rather than produced by the model
+   * that set the verdict. Drives the advisory caveat on the chart.
+   */
+  acousticShapSource?: string;
   visualSaliency: SaliencyFrame[];
   waveform: WaveformData | null;
 

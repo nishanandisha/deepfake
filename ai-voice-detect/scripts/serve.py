@@ -53,6 +53,20 @@ CHECKPOINT_NAME = ""
 # UI's operating-point figures describe this model rather than the old one's.
 TEST_METRICS = {"eer": 0.0200, "auc": 0.9979, "accuracy": 0.9747}
 
+# Operational rates, measured on the 356-clip test split under the three-way
+# policy below (TAU_LO/TAU_HI), not borrowed from a differently-shaped metric.
+#
+# These two fields used to be filled with EER and (1 - accuracy). Both are
+# real numbers about this model, but neither is the quantity its field name
+# claims: EER is a threshold-free error rate, not the fraction of authentic
+# audio that gets blocked, and (1 - accuracy) counts every misclassification,
+# not the fraction routed to human review. The UI prints them as operating
+# characteristics in PolicyPanel, so the labels have to be true.
+#
+#   false suppression -- human clips landing in `block` (c < TAU_LO):  0/97
+#   review queue      -- clips landing in `flag` (TAU_LO <= c < TAU_HI): 17/356
+OPERATING_POINT = {"falseSuppressionRate": 0.0000, "reviewQueueRate": 0.0478}
+
 # The UI routes on an authenticity score with two thresholds. This model has
 # one threshold on P(AI); `tau_hi` is its mirror in authenticity space, and
 # `tau_lo` marks confident synthesis so borderline clips land in "flag"
@@ -65,8 +79,16 @@ TAU_LO = 0.50
 TAU_HI = 0.8942  # 1 - policy threshold (0.1058)
 
 
-def _waveform(signal: np.ndarray, windows: list, peaks: int = 400) -> dict:
-    """Downsampled peaks plus the windows that crossed the threshold."""
+def _waveform(signal: np.ndarray, windows: list, peaks: int = 400,
+              regions: list = None) -> dict:
+    """Downsampled peaks plus the spans flagged as synthetic.
+
+    `regions` comes from the localiser (2s windows at 0.25s hop, merged), which
+    is what lets the UI draw *where* the manipulation is. The old fallback --
+    every coarse 8s window above the clip threshold -- is kept only for callers
+    that pass no regions, because an 8s window is too wide to point at anything
+    and collapses to the whole clip for any file shorter than that.
+    """
     duration = len(signal) / float(SAMPLE_RATE)
     if len(signal) == 0:
         return {"peaks": [], "durationSeconds": 0.0, "suspiciousRegions": []}
@@ -76,20 +98,30 @@ def _waveform(signal: np.ndarray, windows: list, peaks: int = 400) -> dict:
     envelope = np.abs(trimmed.reshape(-1, step)).max(axis=1)
     envelope = envelope / (envelope.max() + 1e-9)
 
-    threshold = POLICY.get("threshold", 0.5)
-    regions = [
-        {
-            "startSeconds": w["startSeconds"],
-            "endSeconds": w["endSeconds"],
-            "intensity": round(float(w["pAiGenerated"]), 4),
-        }
-        for w in windows
-        if w["pAiGenerated"] >= threshold
-    ]
+    if regions:
+        suspect = [
+            {
+                "startSeconds": r["startSeconds"],
+                "endSeconds": r["endSeconds"],
+                "intensity": round(float(r["confidence"]), 4),
+            }
+            for r in regions
+        ]
+    else:
+        threshold = POLICY.get("threshold", 0.5)
+        suspect = [
+            {
+                "startSeconds": w["startSeconds"],
+                "endSeconds": w["endSeconds"],
+                "intensity": round(float(w["pAiGenerated"]), 4),
+            }
+            for w in windows
+            if w["pAiGenerated"] >= threshold
+        ]
     return {
         "peaks": [round(float(v), 4) for v in envelope],
         "durationSeconds": round(duration, 3),
-        "suspiciousRegions": regions,
+        "suspiciousRegions": suspect,
     }
 
 
@@ -115,7 +147,21 @@ def _result(prediction, signal: np.ndarray) -> dict:
         c_score = 1.0 - p_ai
         decision = _decision(c_score)
 
-    is_ai = (not abstained) and prediction.verdict == "ai"
+    # A partly-synthetic clip must not be approved. The clip-level score is a
+    # mean over the whole file, so a genuine recording with a synthetic span
+    # spliced into it averages out well below the threshold -- a 27s clip with
+    # 8.8s of synthetic speech scored 0.08 and came back "approve". When the
+    # localiser has isolated a span, that span is the evidence, and the clip is
+    # routed for review rather than cleared.
+    #
+    # `cScore` deliberately keeps the mean so the published operating point
+    # still describes what it measured; only the routing changes.
+    regions = getattr(prediction, "regions", None) or []
+    partial = (not abstained) and bool(regions) and decision == "approve"
+    if partial:
+        decision = "flag"
+
+    is_ai = (not abstained) and (prediction.verdict in ("ai", "partial"))
 
     return {
         "sampleId": f"sample_{int(time.time()*1000):x}",
@@ -135,9 +181,10 @@ def _result(prediction, signal: np.ndarray) -> dict:
         # Learned embeddings have no human-readable feature names to attribute.
         "acousticShap": [],
         "visualSaliency": [],
-        "waveform": _waveform(signal, prediction.windows),
-        "falseSuppressionRate": TEST_METRICS["eer"],
-        "reviewQueueRate": round(1.0 - TEST_METRICS["accuracy"], 4),
+        "waveform": _waveform(signal, prediction.windows,
+                              regions=getattr(prediction, "regions", None)),
+        "falseSuppressionRate": OPERATING_POINT["falseSuppressionRate"],
+        "reviewQueueRate": OPERATING_POINT["reviewQueueRate"],
         "manipulatedModalityGuess": "audio" if is_ai else "none",
         "scenario": "fake_audio" if is_ai else "authentic",
         # Extra fields the old contract lacks. Unknown keys are ignored by the
@@ -146,6 +193,8 @@ def _result(prediction, signal: np.ndarray) -> dict:
         "reason": prediction.reason,
         "speechSeconds": round(prediction.speech_seconds, 2),
         "windows": prediction.windows,
+        "pAiGeneratedMax": getattr(prediction, "probability_max", None),
+        "regions": getattr(prediction, "regions", None) or [],
     }
 
 

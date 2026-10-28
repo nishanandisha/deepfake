@@ -121,6 +121,23 @@ def _merge(audio: dict, video: dict) -> dict:
     merged["hasVideo"] = True
     merged["visualSaliency"] = video.get("visualSaliency", [])
 
+    # The audio backend runs WavLM over learned embeddings and has no named
+    # descriptors to attribute, so it returns `acousticShap: []`. The visual
+    # backend still carries the old 68-feature acoustic branch, which *does*
+    # produce KernelSHAP over named features -- and because `merged` starts
+    # from the audio response, that was being silently discarded on every
+    # video upload, leaving the UI to render an empty attribution panel.
+    #
+    # Carry it, but record provenance. These bars explain what the *legacy*
+    # acoustic branch keyed on; they do not explain the WavLM verdict, and
+    # presenting them as if they did would be the same overclaim that
+    # `visualAdvisory` exists to prevent.
+    if not merged.get("acousticShap"):
+        legacy_shap = video.get("acousticShap") or []
+        if legacy_shap:
+            merged["acousticShap"] = legacy_shap
+            merged["acousticShapSource"] = "legacy-acoustic-branch"
+
     p_audio = float(audio.get("yHatAcoustic", 0.0))
     p_visual = video.get("yHatVisual")
     merged["yHatVisual"] = p_visual
@@ -138,6 +155,14 @@ def _merge(audio: dict, video: dict) -> dict:
                           else "approve" if merged["cScore"] >= merged["tauHi"]
                           else "flag")
     merged["drivenBy"] = driven_by
+
+    # The fused decision is recomputed from max(visual, audio), both of which
+    # are clip-level means -- so a video whose audio track has a synthetic span
+    # spliced into it can still land on "approve" even though the audio
+    # localiser isolated the span. Honour that evidence here, the same way the
+    # audio backend does for audio-only uploads.
+    if merged["decision"] == "approve" and (audio.get("regions") or []):
+        merged["decision"] = "flag"
 
     if merged["decision"] == "approve":
         merged["manipulatedModalityGuess"] = "none"

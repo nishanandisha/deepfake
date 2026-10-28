@@ -20,6 +20,16 @@ import type {
  * string, so the boundary shown in the UI is the boundary the model used.
  */
 export function verdictFor(result: InferenceResult): Verdict {
+  // `decision` is the backend's calibrated routing and can carry evidence the
+  // clip score does not. A clip whose audio localiser found a synthetic span
+  // is routed to `flag` even though its mean score -- averaged over a mostly
+  // genuine recording -- still sits in the "approve" band. Re-deriving the
+  // verdict from cScore alone threw that away and reported such a clip as
+  // "Not a deepfake" while the server had flagged it.
+  if (result.decision === "block") return "deepfake";
+  if (result.decision === "flag") return "uncertain";
+  if (result.decision === "approve") return "authentic";
+
   if (result.cScore < result.tauLo) return "deepfake";
   if (result.cScore >= result.tauHi) return "authentic";
   return "uncertain";
@@ -143,11 +153,29 @@ function videoSegments(result: InferenceResult, duration: number): TamperSegment
 
 function audioSegments(result: InferenceResult, duration: number): TamperSegment[] {
   const branchProb = result.yHatAcoustic;
-  if (branchProb < BRANCH_IMPLICATION_FLOOR) return [];
 
-  const regions = [...(result.waveform?.suspiciousRegions ?? [])].sort(
-    (a, b) => a.startSeconds - b.startSeconds
-  );
+  // The floor exists so the UI cannot invent findings on authentic clips, and
+  // it stays in force for the legacy path, where "regions" were just every
+  // coarse window above the clip threshold and carried no gating of their own.
+  //
+  // The localiser is different: it already applies confidence and coverage
+  // gates server-side, and its whole purpose is the case this floor blocks --
+  // a mostly-genuine recording whose clip-level mean stays low while one span
+  // is synthetic. Holding those to a 0.5 clip score hid every splice the
+  // localiser was built to find.
+  const localized = result.regions ?? [];
+  const useLocalized = localized.length > 0;
+  if (!useLocalized && branchProb < BRANCH_IMPLICATION_FLOOR) return [];
+
+  const regions = (
+    useLocalized
+      ? localized.map((r) => ({
+          startSeconds: r.startSeconds,
+          endSeconds: r.endSeconds,
+          intensity: r.confidence,
+        }))
+      : [...(result.waveform?.suspiciousRegions ?? [])]
+  ).sort((a, b) => a.startSeconds - b.startSeconds);
   if (regions.length === 0) return [];
 
   const topFeatures = [...result.acousticShap]
@@ -184,7 +212,12 @@ function audioSegments(result: InferenceResult, duration: number): TamperSegment
       startSeconds,
       endSeconds,
       peakSeconds: m.peak,
-      confidence: m.intensity * branchProb,
+      // Legacy regions are raw window probabilities, so they are scaled by how
+      // far the branch implicated the clip at all. A localised region is
+      // already the model's own score for that span -- scaling it by a
+      // clip-level mean that the splice barely moved reported a 0.56 region
+      // as 0.04.
+      confidence: useLocalized ? m.intensity : m.intensity * branchProb,
       frames: [],
       topFeatures,
     };

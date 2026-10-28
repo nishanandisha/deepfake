@@ -241,7 +241,7 @@ export function SegmentReview({
   if (segments.length === 0) {
     return (
       <div className="glass-panel rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-foreground">Manipulated regions</h3>
+        <h3 className="t-title font-semibold text-foreground">Manipulated regions</h3>
         <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-dashed border-authentic/30 bg-authentic/[0.04] px-4 py-6 text-xs text-muted-foreground">
           <Check className="h-4 w-4 shrink-0 text-authentic" />
           Neither branch implicated its own modality, so there is no region to localize. The clip
@@ -255,13 +255,13 @@ export function SegmentReview({
     <div className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="t-title font-semibold text-foreground">
             Manipulated regions
             <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
               {segments.length}
             </span>
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="t-support mt-1 text-muted-foreground">
             Only part of a clip is usually altered. Open each region, look at the evidence, and
             record whether you agree.
           </p>

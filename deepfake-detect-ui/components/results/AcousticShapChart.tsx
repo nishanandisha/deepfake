@@ -4,7 +4,21 @@ import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts
 import type { AcousticShapEntry } from "@/lib/types";
 import { friendlyName } from "@/lib/analysis/featureNames";
 
-export function AcousticShapChart({ entries }: { entries: AcousticShapEntry[] }) {
+export function AcousticShapChart({
+  entries,
+  source,
+}: {
+  entries: AcousticShapEntry[];
+  source?: string;
+}) {
+  // Nothing to attribute: the WavLM audio model has no named descriptors, so
+  // an audio-only upload legitimately returns []. Render nothing rather than
+  // an empty card -- the same choice `hasVideo` already drives for the video
+  // timeline and saliency filmstrip.
+  if (entries.length === 0) return null;
+
+  const legacy = source === "legacy-acoustic-branch";
+
   const data = [...entries]
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
     .map((e) => ({ ...e, name: friendlyName(e.feature) }));
@@ -13,10 +27,17 @@ export function AcousticShapChart({ entries }: { entries: AcousticShapEntry[] })
 
   return (
     <div className="glass-panel rounded-2xl p-5">
-      <h3 className="text-sm font-semibold text-foreground">Acoustic feature attribution</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <h3 className="t-title font-semibold text-foreground">Acoustic feature attribution</h3>
+      <p className="t-support mt-1 text-muted-foreground">
         KernelSHAP over named descriptors — positive pushes toward fake, negative toward authentic.
       </p>
+      {legacy && (
+        <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-200/90">
+          Advisory — from the legacy 68-feature acoustic branch, not the WavLM
+          model that set this verdict. Read it as what that older branch keyed
+          on, not as the reason for the decision.
+        </p>
+      )}
       <div className="mt-4 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>

@@ -9,6 +9,7 @@ import { ScenarioPicker } from "@/components/upload/ScenarioPicker";
 import { Button } from "@/components/ui/button";
 import { usePipelineStore } from "@/store/pipelineStore";
 import { useBackendStatus } from "@/hooks/useBackendStatus";
+import { useEntrance } from "@/lib/motion";
 
 const STATS = [
   {
@@ -32,6 +33,7 @@ export default function LandingPage() {
   const router = useRouter();
   const { file, runInference } = usePipelineStore();
   const backend = useBackendStatus();
+  const entrance = useEntrance();
 
   const handleRun = () => {
     if (!file) return;
@@ -45,30 +47,24 @@ export default function LandingPage() {
       <main className="relative flex-1 grid-glow-bg">
         <div className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-16 sm:px-6 sm:pt-24 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground"
+            {...entrance(0)}
+            className="t-meta mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1.5 font-medium uppercase tracking-[0.08em] text-muted-foreground"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+            <span className="h-1.5 w-1.5 rounded-full bg-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_22%,transparent)]" />
             Multimodal deepfake detection
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.05 }}
-            className="max-w-3xl text-balance text-center text-4xl font-semibold tracking-tight text-foreground sm:text-5xl"
+            {...entrance(1)}
+            className="t-display max-w-3xl text-balance text-center font-semibold text-foreground"
           >
             Is it real? And if not,{" "}
             <span className="accent-gradient-text">which part was faked?</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-            className="mt-5 max-w-xl text-center text-[15px] leading-relaxed text-muted-foreground"
+            {...entrance(2)}
+            className="t-body mt-5 max-w-xl text-center text-muted-foreground"
           >
             Drop in a clip and DeepFake checks the picture and the sound separately, then
             shows you the exact seconds it believes were manipulated — so you can look at the
@@ -76,26 +72,24 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
-            className="mt-10 grid w-full grid-cols-1 gap-3 sm:grid-cols-3"
+            {...entrance(3)}
+            className="mt-12 grid w-full grid-cols-1 gap-3 sm:grid-cols-3"
           >
             {STATS.map(({ icon: Icon, label, detail }) => (
-              <div key={label} className="glass-panel rounded-xl px-4 py-3">
-                <Icon className="h-4 w-4 text-brand" />
-                <p className="mt-2 text-sm font-medium text-foreground">{label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+              <div
+                key={label}
+                className="glass-panel glass-panel-interactive rounded-xl p-4"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand/20 bg-brand/10">
+                  <Icon className="h-4 w-4 text-brand" />
+                </span>
+                <p className="t-title mt-3 font-medium text-foreground">{label}</p>
+                <p className="t-support mt-1 text-muted-foreground">{detail}</p>
               </div>
             ))}
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-            className="mt-12 w-full space-y-6"
-          >
+          <motion.div {...entrance(4)} className="mt-10 w-full space-y-6">
             <Dropzone />
 
             {/* The scenario picker only steers the mock engine. With the trained
@@ -104,7 +98,7 @@ export default function LandingPage() {
             {backend === "mock" && <ScenarioPicker />}
 
             <div className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-between">
-              <p className="text-xs text-muted-foreground sm:max-w-sm">
+              <p className="t-support text-muted-foreground sm:max-w-sm">
                 {backend === "model"
                   ? "Scored by the trained cross-attention fusion model running locally. Your file is sent to that local server and not stored."
                   : "The detection backend is offline, so results below are simulated from the scenario you pick — not model output."}

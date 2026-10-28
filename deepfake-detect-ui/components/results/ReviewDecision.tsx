@@ -59,7 +59,7 @@ export function ReviewDecision({
   return (
     <div className="glass-panel flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h3 className="text-sm font-semibold text-foreground">Your verdict</h3>
+        <h3 className="t-title font-semibold text-foreground">Your verdict</h3>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {finalCall
             ? `Recorded as ${finalCall === "deepfake" ? "a deepfake" : "genuine"}.`

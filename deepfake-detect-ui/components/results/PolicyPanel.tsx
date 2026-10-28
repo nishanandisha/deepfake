@@ -46,8 +46,8 @@ export function PolicyPanel({ result }: { result: InferenceResult }) {
 
   return (
     <div className="glass-panel rounded-2xl p-5">
-      <h3 className="text-sm font-semibold text-foreground">How the call was made</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <h3 className="t-title font-semibold text-foreground">How the call was made</h3>
+      <p className="t-support mt-1 text-muted-foreground">
         Post-hoc calibrated thresholds, tuned on the validation split.
       </p>
 

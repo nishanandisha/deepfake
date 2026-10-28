@@ -29,8 +29,8 @@ export function SaliencyFilmstrip({
     <div className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Every sampled frame</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h3 className="t-title font-semibold text-foreground">Every sampled frame</h3>
+          <p className="t-support mt-1 text-muted-foreground">
             The full set the visual branch looked at, in order. Flagged frames are the ones
             inside an implicated span — the rest are shown for comparison.
           </p>

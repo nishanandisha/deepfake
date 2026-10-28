@@ -155,6 +155,12 @@
 }
 
 @layer utilities {
+  /* Glass surfaces.
+     The top inner highlight is what makes a translucent panel read as a solid
+     pane catching light rather than a flat tinted rectangle -- it costs one
+     inset shadow and does more for perceived depth than more blur would.
+     `--panel-raise` lets a panel sit visually above its neighbours without
+     introducing a second background colour. */
   .glass-panel {
     background: linear-gradient(
       180deg,
@@ -164,6 +170,31 @@
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      inset 0 1px 0 0 rgb(187 225 250 / 7%),
+      0 1px 2px 0 rgb(0 0 0 / 20%),
+      0 8px 24px -12px rgb(0 0 0 / 45%);
+  }
+
+  /* The one panel that carries the verdict. Slightly brighter edge and a
+     deeper cast, so the eye lands on it before the supporting panels. */
+  .glass-panel-raised {
+    box-shadow:
+      inset 0 1px 0 0 rgb(187 225 250 / 11%),
+      0 2px 4px 0 rgb(0 0 0 / 24%),
+      0 18px 44px -18px rgb(0 0 0 / 60%);
+  }
+
+  /* Interactive panels: lift on hover rather than just changing border tint. */
+  .glass-panel-interactive {
+    transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease;
+  }
+  .glass-panel-interactive:hover {
+    border-color: color-mix(in srgb, var(--brand) 34%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 rgb(187 225 250 / 11%),
+      0 2px 6px 0 rgb(0 0 0 / 26%),
+      0 16px 40px -16px rgb(0 0 0 / 55%);
   }
 
   .accent-gradient-text {
@@ -190,5 +221,59 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--muted-foreground) transparent;
+  }
+
+  /* ---------------------------------------------------------------------
+     Type scale.
+     The UI had grown a dozen one-off sizes (text-[15px], text-[13px],
+     text-[11px], text-xs ...) chosen per component, so panels set side by
+     side disagreed by a pixel or two for no reason. These five steps cover
+     every case in the app; each pairs a size with the line-height and
+     tracking that suit it, which arbitrary Tailwind sizes do not.
+  --------------------------------------------------------------------- */
+  .t-display {
+    font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
+    line-height: 1.06;
+    letter-spacing: -0.028em;
+  }
+  .t-title {           /* panel headings */
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    letter-spacing: -0.011em;
+  }
+  .t-body {            /* readable prose inside panels */
+    font-size: 0.875rem;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+  }
+  .t-support {         /* secondary explanatory copy */
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+  .t-meta {            /* labels, counts, timestamps */
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+  }
+
+  /* Numerals in tables, gauges and timelines must not jitter as values
+     change -- tabular figures keep columns aligned between renders. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* Respect a reduced-motion preference. The results page stacks ten staggered
+   entrance animations; for anyone who has asked the OS for less movement that
+   is the opposite of helpful. Content still renders -- only the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
