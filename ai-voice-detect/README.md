@@ -195,6 +195,18 @@ Routing is **by probe, not extension** — an `.mp4` can carry no video track,
 and an `.mp3` with cover art exposes the artwork as a single-frame video
 stream. Two decodable frames are required before a file is treated as video.
 
+`start_all.sh` handles two common startup failures itself:
+
+- **ffmpeg on PATH.** Both backends shell out to ffmpeg for `.mp4`/`.mov` and
+  for voice-note formats (`.opus`, `.m4a`). If the launching shell's PATH
+  lacks Homebrew, the script checks `/opt/homebrew/bin`, `/usr/local/bin` and
+  `/opt/local/bin`, and warns if ffmpeg is missing. Without ffmpeg, those
+  uploads fail with a decoding 500, while `.wav`/`.flac` still work.
+- **Waiting for every backend.** The router answers `/api/health` as soon as
+  it listens, while the visual backend may still be loading its checkpoint.
+  The script waits (up to ~3 minutes) until each proxied backend reports
+  `up: true`, so a slow start does not look like a failure.
+
 ### How the two branches combine
 
 They answer genuinely different questions, and neither subsumes the other:
@@ -215,6 +227,37 @@ so — and `drivenBy` records which one set it.
 > fails silently by centre-cropping background. A visual-driven verdict is a
 > prompt to review, not a conclusion. Only the audio branch has a validated
 > number.
+
+Two router rules sit on top of `max(visual, audio)`:
+
+- if the fused decision is `approve` but the audio localiser returned
+  `regions`, the decision becomes `flag` (see
+  [Localizing synthetic spans](#localizing-synthetic-spans));
+- the audio model returns `acousticShap: []` (no named features), so on video
+  uploads the router passes through the legacy acoustic branch's KernelSHAP
+  from `deepfake-detect` and tags it `acousticShapSource:
+  "legacy-acoustic-branch"`. It explains the old branch, not this verdict, and
+  the UI says so.
+
+### Response fields
+
+In addition to the UI's standard contract, `serve.py` returns:
+
+| field | meaning |
+|---|---|
+| `regions` | localised synthetic spans: `startSeconds`, `endSeconds`, `confidence` |
+| `pAiGeneratedMax` | highest single-window P(AI); the clip score is a mean and hides spikes |
+| `windows` | per-window 8s scores |
+| `reason`, `speechSeconds` | why the verdict was reached; voiced duration |
+
+`waveform.suspiciousRegions` is built from `regions` when present, and falls
+back to coarse 8s windows above the clip threshold otherwise.
+
+`falseSuppressionRate` and `reviewQueueRate` report the measured operating
+point of the three-way policy on the 356-clip test split: **0/97** human clips
+blocked (0.00%) and **17/356** clips routed to review (4.78%). They previously
+carried EER and 1−accuracy. Both of those are real metrics, but neither is
+what the field names promise.
 
 Individual servers, if needed: `scripts/serve.py` (audio only) and
 `scripts/router.py`. Logs land in `outputs/logs/`.
@@ -249,6 +292,38 @@ Through the API this surfaces as the uncertain band, never as a confident
 alongside, so a short synthetic insert in a long genuine recording is not
 averaged into invisibility. The predecessor analysed only the first 8 seconds
 of any upload.
+
+### Localizing synthetic spans
+
+An 8s window answers "is this clip synthetic?" but not *where*, and for clips
+under 8s it covers the whole file. A second pass scores **2s windows at a
+0.25s hop**, keeps windows above `REGION_THRESHOLD` (0.10), merges spans less
+than 0.5s apart, and drops any shorter than 0.4s
+(`src/inference/predict.py`).
+
+The threshold is far below the clip-level 0.106 on purpose. The head was
+trained on 4–6s clips, so a 2s slice gives it less to pool: inside a
+synthetic span, scores run 0.1–0.6, while genuine speech stays at 0.00–0.02.
+
+Tuned on four splices (Hume, Kokoro, ElevenLabs and Polly inserted into
+genuine speech) plus all-real and all-AI controls, it reached a **mean
+frame-IoU of 0.753**, produced no regions on the all-real control, and covered
+98% of the all-AI one.
+
+Two gates keep it from inventing findings out of domain. On LAV-DF, genuine
+speech produced 2s scores of 0.46–0.59 while the clip score correctly stayed
+at 0.008:
+
+- `MIN_REGION_CONFIDENCE` (0.30) drops weak hits;
+- `MAX_REGION_COVERAGE` (0.60) discards the regions when they cover most of a
+  clip whose clip-level verdict is human. A splice is a minority of the file.
+
+**Partial clips are routed for review.** When regions survive and the clip
+score says human, the verdict becomes `partial`, and an `approve` decision is
+raised to `flag`. A 27s clip with 8.8s of synthetic speech scored 0.08 on the
+mean and used to come back as "approve". `cScore` still reports the mean, so
+the published operating point keeps describing what it measured; only the
+routing changes.
 
 **Audio decoding has three tiers.** soundfile for the corpus, librosa for other
 bare formats, ffmpeg for video containers — soundfile rejects containers

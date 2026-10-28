@@ -137,10 +137,11 @@ calibrated — the UI states this.
 The wire format is otherwise unchanged — `serve.py` still returns the three-way
 `approve`/`flag`/`block` decision documented below, and the UI maps it
 (`block` -> Deepfake, `flag` -> Possibly manipulated, `approve` -> Not a
-deepfake) using the `tauLo`/`tauHi` shipped with each response. Nothing in
-this repo needed to change for that. See the UI's README for the mapping and
-for how tampered regions are derived from `visualSaliency` and
-`waveform.suspiciousRegions`.
+deepfake) from the `decision` string, falling back to `cScore` against the
+`tauLo`/`tauHi` shipped with each response. Nothing in this repo needed to
+change for that. See the UI's README for the mapping and for how tampered
+regions are derived from `visualSaliency`, the audio localiser's `regions`,
+and (for older responses) `waveform.suspiciousRegions`.
 
 ## Repo layout
 

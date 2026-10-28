@@ -92,9 +92,13 @@ question the product actually answers:
 | `flag` | **Possibly manipulated** |
 | `approve` | **Not a deepfake** |
 
-The mapping is driven by `cScore` against the thresholds the backend ships
-with each result, not by the `decision` string, so the boundary shown is the
-boundary the model used. All of it lives in
+The mapping follows the backend's `decision` string, which can carry evidence
+the clip score does not: a mostly genuine recording with a synthetic span
+spliced in has a low mean score, but the backend routes it to `flag` once the
+audio localiser has isolated the span. Deriving the verdict from `cScore`
+alone reported such clips as "Not a deepfake". Only when `decision` is absent
+does the UI fall back to `cScore` against the `tauLo`/`tauHi` shipped with
+each result. All of it lives in
 [`lib/analysis/localization.ts`](lib/analysis/localization.ts).
 
 Scores are also **flipped to read as manipulation likelihood** (`1 - cScore`).
@@ -110,8 +114,11 @@ timestamped spans:
 - **Video** — frames whose Grad-CAM salience clears `SALIENCE_FLOOR` (0.5),
   with consecutive flagged frames merged into one span and padded by half a
   sampling interval on each side.
-- **Audio** — `waveform.suspiciousRegions`, merged when less than 0.3 s
-  apart.
+- **Audio** — the localiser's `regions` (2 s windows at 0.25 s hop, gated
+  server-side for confidence and coverage; see
+  [`../ai-voice-detect`](../ai-voice-detect)). Older responses without
+  `regions` fall back to `waveform.suspiciousRegions`. Either way, spans less
+  than 0.3 s apart are merged.
 
 Two rules keep this honest:
 
@@ -123,6 +130,12 @@ Two rules keep this honest:
 - **Segment confidence is scaled by that branch probability**, so a region's
   displayed confidence can never exceed the branch's own conviction.
 
+Localised audio `regions` are exempt from both rules. They are already gated
+on the server, and their whole point is the case the floor blocks: a splice
+barely moves the clip-level mean, so holding the spans to a 0.5 clip score
+hid every splice the localiser found, and scaling by that mean turned a
+0.56 region into 0.04. Each localised region is shown with its own score.
+
 If a branch implicates its modality but no single frame clears the floor, the
 strongest frame is surfaced anyway — the evidence is spread thin rather than
 absent, and the reviewer still gets somewhere to look.
@@ -133,7 +146,11 @@ routinely under a second, and whole-second rounding collapsed them into
 
 ## Audio-only files (voice notes)
 
-MP3/WAV/FLAC uploads with no video track are fully supported. The router
+MP3/WAV/FLAC uploads with no video track are fully supported, as are voice
+notes in `.opus`/`.ogg`/`.m4a` (decoded by the backend through ffmpeg).
+Browsers often report a WhatsApp voice note's MIME type as empty or
+`application/ogg`, so the dropzone falls back to the file extension and
+explains a rejection instead of silently ignoring the drop. The router
 probes for a decodable video stream and, finding none, sends the file to
 [`../ai-voice-detect`](../ai-voice-detect) alone — a frozen WavLM-Base+
 frontend with a trained attentive-pooling head, measured at **2.00% EER** on a
@@ -148,6 +165,10 @@ Two behaviours differ from the old acoustic branch, both deliberate:
 - **Long files are scored in windows** — 8s at 4s hop, aggregated — so a short
   synthetic insert in a long genuine recording is not averaged away. The
   predecessor analysed only the first 8 seconds of any upload.
+- **Partly synthetic clips are flagged, not approved.** A separate 2s-window
+  pass localises synthetic spans. If it finds one, the clip is routed to
+  `flag` ("Possibly manipulated") even when its mean score is in the approve
+  band, and the span is drawn on the timeline.
 
 Note the narrower question: this model detects **synthetic speech**, not
 *manipulated* speech. Spliced real human audio is genuinely human by its
@@ -165,8 +186,14 @@ The response sets `hasVideo: false`, and the UI adapts throughout:
   names to attribute to. It returns `acousticShap: []`; inventing labels
   would be worse than showing none.
 
-Localization still works — per-window scores become suspicious regions, so
-audio is timestamped exactly as it is for a video upload.
+On **video** uploads the router does fill the SHAP chart, using the legacy
+68-feature acoustic branch in `deepfake-detect`, and marks it with
+`acousticShapSource: "legacy-acoustic-branch"`. The chart then shows a caveat:
+those bars explain what the old branch keyed on, not the WavLM verdict.
+
+Localization still works — the localiser's `regions` are drawn on the
+waveform and timeline, so audio is timestamped exactly as it is for a video
+upload.
 
 > Calibration is no longer approximated. The old audio-only path reused the
 > temperature and thresholds fitted on the **fused** logit, which capped
